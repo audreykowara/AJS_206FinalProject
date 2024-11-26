@@ -6,7 +6,7 @@ import requests
 import sqlite3
 import time
 import matplotlib.pyplot as plt
-import pandas as pd
+#import pandas as pd
 
 # AccuWeather API key and base URL
 API_KEY = '4CFp5OziXB2x7O8uAoQICsg3BKDE94tv'
@@ -38,3 +38,23 @@ def setup_database():
     ''')
     conn.commit()
     conn.close()
+
+#Function to get current weather data
+def get_weather(city):
+    url  = f"{BASE_URL}"
+    params = {
+        'access_key': API_KEY,
+        'query' : "Chicago"
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        if "current" in data:
+            return {
+                'temperature': data['current']['temperature'],  # Temperature in Celsius
+                'weather_condition': data['current']['weather_descriptions'][0],
+                'wind_speed': data['current']['wind_speed'],  # Wind speed in km/h
+                'humidity': data['current']['humidity'],
+                'observation_time': data['location']['localtime']
+            }
+    return None
