@@ -58,3 +58,37 @@ def get_weather(city):
                 'observation_time': data['location']['localtime']
             }
     return None
+
+#Function to store weather data in the database
+def store_weather_data(city, weather_data):
+    conn = sqlite3.connect('weather_data.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO Weather (city, temperature, weather_condition, wind_speed, humidity, observation_time)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (city, weather_data['temperature'], weather_data['weather_condition'], weather_data['wind_speed'], weather_data['humidity'], weather_data['observation_time']))
+    cursor.execute('''
+        INSERT INTO Wind (city, wind_speed, observation_time)
+        VALUES (?, ?, ?)
+    ''', (city, weather_data['wind_speed'], weather_data['observation_time']))
+    conn.commit()
+    conn.close()
+
+# Main function to gather data
+def main():
+    setup_database()
+    cities = ['Chicago']  # Example city
+
+    for city in cities:
+        for _ in range(25):  # Gather data multiple times to reach 100 records
+            weather_data = get_weather(city)
+            if weather_data:
+                store_weather_data(city, weather_data)
+                print(f"Stored data for {city}")
+            else:
+                print(f"Could not get weather data for {city}")
+            
+            # Delay to avoid hitting the rate limit of the API
+            time.sleep(1)
+
+
