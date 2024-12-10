@@ -1,20 +1,16 @@
-#AJS Force: Audrey Kowara, Jessica Yang, Sydney Emuakhagbon
-#206 Final Project "Chicago Holiday Planning"
-
-
-import requests
+import requests 
 import sqlite3
 import time
-import matplotlib.pyplot as plt
-#import pandas as pd
+#import matpotlib.pyplot as plt
+import pandas as pd
 
-# AccuWeather API key and base URL
-API_KEY = '4CFp5OziXB2x7O8uAoQICsg3BKDE94tv'
-BASE_URL = 'http://dataservice.accuweather.com/'
+#AccuWeather API key and URL
+BASE_URL = "http://dataservice.accuweather.com/locations/v1/cities/search"
+API_KEY = "4CFp5OziXB2x7O8uAoQICsg3BKDE94tv"
 
-# SQLite Database setup
+#SQLite Datababse Set up
 def setup_database():
-    conn = sqlite3.connect('weather_data.db')
+    conn = sqlite3.connect('weather.db')
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Weather (
@@ -41,26 +37,41 @@ def setup_database():
 
 #Function to get current weather data
 def get_weather(city):
-    url  = f"{BASE_URL}"
-    params = {
-        'access_key': API_KEY,
-        'query' : "Chicago"
+    #Get location key for the city
+    location_url = f"{BASE_URL}locations/v1/cities/search"
+    location_params = {
+        'apikey': API_KEY,
+        'query': "Chicago"  
     }
-    response = requests.get(url, params=params)
-    if response.status_code == 200:
-        data = response.json()
-        if "current" in data:
-            return {
-                'temperature': data['current']['temperature'],  # Temperature in Celsius
-                'weather_condition': data['current']['weather_descriptions'][0],
-                'wind_speed': data['current']['wind_speed'],  # Wind speed in km/h
-                'humidity': data['current']['humidity'],
-                'observation_time': data['location']['localtime']
+
+    location_response = requests.get(location_url, params=location_params)
+    if location_response.status_code == 200:
+        location_data = location_response.json()
+        if location_data:
+             location_key = location_data[0]['Key']  # Use the first location key
+             city_name = location_data[0]['LocalizedName']
+
+             #Get current conditions sing the location key
+             weather_url = f"{BASE_URL}currentconditions/v1/{location_key}"
+             weather_params = {
+                'apikey': API_KEY,
+                'details': 'true'  # Optional: provides additional details
             }
+             weather_response = requests.get(weather_url, params=weather_params)
+             if weather_response.status_code == 200:
+                weather_data = weather_response.json()
+                if weather_data:
+                    return {
+                        'temperature': weather_data[0]['Temperature']['Metric']['Value'],  # Temperature in Celsius
+                        'weather_condition': weather_data[0]['WeatherText'],
+                        'wind_speed': weather_data[0]['Wind']['Speed']['Metric']['Value'],  # Wind speed in km/h
+                        'humidity': weather_data[0].get('RelativeHumidity', None),
+                        'observation_time': weather_data[0]['LocalObservationDateTime']
+                    }
     return None
 
 #Function to store weather data in the database
-def store_weather_data(city, weather_data):
+def store_weather_data(city, wetaher_data):
     conn = sqlite3.connect('weather_data.db')
     cursor = conn.cursor()
     cursor.execute('''
@@ -74,10 +85,10 @@ def store_weather_data(city, weather_data):
     conn.commit()
     conn.close()
 
-# Main function to gather data
+#Main function to gather data
 def main():
     setup_database()
-    cities = ['Chicago']  # Example city
+    cities = ['Chicago']
 
     for city in cities:
         for _ in range(25):  # Gather data multiple times to reach 100 records
@@ -87,8 +98,16 @@ def main():
                 print(f"Stored data for {city}")
             else:
                 print(f"Could not get weather data for {city}")
-            
             # Delay to avoid hitting the rate limit of the API
             time.sleep(1)
+
+
+
+
+                   
+    
+
+
+
 
 
